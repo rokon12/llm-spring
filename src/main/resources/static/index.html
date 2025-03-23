@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Assistant</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f2f5;
+        }
+        .chat-widget {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        .chat-button {
+            width: 60px;
+            height: 60px;
+            border-radius: 30px;
+            background-color: #0084ff;
+            color: white;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .chat-button:hover {
+            transform: scale(1.1);
+            background-color: #0073e6;
+        }
+        .chat-container {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            width: 350px;
+            height: 500px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: none;
+            flex-direction: column;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+        .chat-container.show {
+            display: flex;
+            animation: slideIn 0.3s ease;
+        }
+        .chat-container.maximized {
+            width: 90%;
+            height: 90vh;
+            max-width: 1200px;
+            bottom: 50%;
+            right: 50%;
+            transform: translate(50%, 50%);
+            animation: none;
+        }
+        .chat-container.maximized.show {
+            animation: maximizeIn 0.3s ease;
+        }
+        @keyframes maximizeIn {
+            from { 
+                width: 350px;
+                height: 500px;
+                bottom: 90px;
+                right: 20px;
+                transform: none;
+            }
+            to { 
+                width: 90%;
+                height: 90vh;
+                max-width: 1200px;
+                bottom: 50%;
+                right: 50%;
+                transform: translate(50%, 50%);
+            }
+        }
+        .backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+        .backdrop.show {
+            display: block;
+        }
+        @keyframes slideIn {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .chat-header {
+            padding: 15px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+        }
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+        .message.user {
+            align-items: flex-end;
+        }
+        .message.assistant {
+            align-items: flex-start;
+        }
+        .message-content {
+            max-width: 80%;
+            padding: 8px 12px;
+            border-radius: 15px;
+            margin: 2px 0;
+        }
+        .user .message-content {
+            background-color: #0084ff;
+            color: white;
+        }
+        .assistant .message-content {
+            background-color: #e9ecef;
+            color: black;
+        }
+        .chat-input {
+            padding: 15px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+        }
+        #messageInput {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #e0e0e0;
+            border-radius: 20px;
+            outline: none;
+        }
+        #sendButton {
+            padding: 8px 15px;
+            background-color: #0084ff;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        #sendButton:hover {
+            background-color: #0073e6;
+        }
+        .minimize-button {
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            padding: 5px;
+        }
+        .minimize-button:hover {
+            color: #333;
+        }
+        @media (max-width: 576px) {
+            .chat-container {
+                width: 100%;
+                height: 100%;
+                bottom: 0;
+                right: 0;
+                border-radius: 0;
+                transform: none;
+            }
+            .chat-container.maximized {
+                width: 100%;
+                height: 100vh;
+                max-width: none;
+                bottom: 0;
+                right: 0;
+                transform: none;
+            }
+            .chat-button {
+                bottom: 10px;
+                right: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="backdrop" id="backdrop"></div>
+    <div class="chat-widget">
+        <button class="chat-button" id="chatButton">
+            <i class="bi bi-chat-dots-fill fs-4"></i>
+        </button>
+        <div class="chat-container" id="chatContainer">
+            <div class="chat-header">
+                <h5 class="mb-0">Chat Assistant</h5>
+                <div class="d-flex gap-2">
+                    <button class="minimize-button" id="maximizeButton" title="Maximize">
+                        <i class="bi bi-arrows-angle-expand"></i>
+                    </button>
+                    <button class="minimize-button" id="minimizeButton" title="Minimize">
+                        <i class="bi bi-dash-lg"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <!-- Messages will be added here dynamically -->
+            </div>
+            <div class="chat-input">
+                <input type="text" id="messageInput" class="form-control" placeholder="Type your message...">
+                <button id="sendButton" class="btn btn-primary">
+                    <i class="bi bi-send"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const messageInput = document.getElementById('messageInput');
+            const sendButton = document.getElementById('sendButton');
+            const chatMessages = document.getElementById('chatMessages');
+            const chatButton = document.getElementById('chatButton');
+            const chatContainer = document.getElementById('chatContainer');
+            const minimizeButton = document.getElementById('minimizeButton');
+            const maximizeButton = document.getElementById('maximizeButton');
+            const backdrop = document.getElementById('backdrop');
+
+            function toggleChat() {
+                chatContainer.classList.toggle('show');
+                if (chatContainer.classList.contains('show')) {
+                    messageInput.focus();
+                }
+            }
+
+            function toggleMaximize() {
+                chatContainer.classList.toggle('maximized');
+                backdrop.classList.toggle('show');
+                const icon = maximizeButton.querySelector('i');
+                if (chatContainer.classList.contains('maximized')) {
+                    icon.classList.remove('bi-arrows-angle-expand');
+                    icon.classList.add('bi-arrows-angle-contract');
+                    maximizeButton.title = "Restore";
+                } else {
+                    icon.classList.remove('bi-arrows-angle-contract');
+                    icon.classList.add('bi-arrows-angle-expand');
+                    maximizeButton.title = "Maximize";
+                }
+            }
+
+            function closeMaximized() {
+                if (chatContainer.classList.contains('maximized')) {
+                    toggleMaximize();
+                }
+            }
+
+            function handleKeyPress(e) {
+                if (e.key === 'Escape') {
+                    if (chatContainer.classList.contains('maximized')) {
+                        toggleMaximize();
+                    } else if (chatContainer.classList.contains('show')) {
+                        toggleChat();
+                    }
+                }
+            }
+
+            function addMessage(message, isUser) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${isUser ? 'user' : 'assistant'}`;
+
+                const messageContent = document.createElement('div');
+                messageContent.className = 'message-content';
+                messageContent.textContent = message;
+
+                messageDiv.appendChild(messageContent);
+                chatMessages.appendChild(messageDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+
+            async function sendMessage() {
+                const message = messageInput.value.trim();
+                if (message) {
+                    addMessage(message, true);
+                    messageInput.value = '';
+
+                    try {
+                        const response = await fetch(`/assistant?message=${encodeURIComponent(message)}`);
+                        const reply = await response.text();
+                        addMessage(reply, false);
+                    } catch (error) {
+                        console.error('Error:', error);
+                        addMessage('Sorry, there was an error processing your message.', false);
+                    }
+                }
+            }
+
+            chatButton.addEventListener('click', toggleChat);
+            minimizeButton.addEventListener('click', toggleChat);
+            maximizeButton.addEventListener('click', toggleMaximize);
+            backdrop.addEventListener('click', closeMaximized);
+            document.addEventListener('keydown', handleKeyPress);
+            sendButton.addEventListener('click', sendMessage);
+            messageInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
