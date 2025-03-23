@@ -1,17 +1,22 @@
-package ca.bazlur.llmspring;
+package ca.bazlur.llmspring.controller;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import ca.bazlur.llmspring.config.TestConfig;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
-@AutoConfigureMockMvc
+@WebMvcTest(AssistantController.class)
+@Import(TestConfig.class)
+@TestPropertySource(properties = {
+    "spring.autoconfigure.exclude=dev.langchain4j.openai.spring.AutoConfig"
+})
 public class AssistantControllerTest {
 
     @Autowired
@@ -44,13 +49,15 @@ public class AssistantControllerTest {
         mockMvc.perform(get("/assistant")
                 .param("message", testMessage))
                 .andExpect(status().isOk())
-                .andExpect(content().contentType("text/plain;charset=UTF-8"));
+                .andExpect(content().contentType("text/plain;charset=UTF-8"))
+                .andExpect(content().string("Test response for: " + testMessage));
     }
 
     @Test
     public void shouldHandleEmptyMessage() throws Exception {
         mockMvc.perform(get("/assistant"))
                 .andExpect(status().isOk())
-                .andExpect(content().contentType("text/plain;charset=UTF-8"));
+                .andExpect(content().contentType("text/plain;charset=UTF-8"))
+                .andExpect(content().string("Test response for: What is the current time?"));
     }
 }
